@@ -25,9 +25,9 @@ services:
     build: ./setup
     environment:
       - METABASE_HOST=metabase
-      - METABASE_PORT=$METABASE_PORT
-      - METABASE_EMAIL=$METABASE_EMAIL
-      - METABASE_PASS=$METABASE_PASSWORD
+      - METABASE_PORT
+      - METABASE_EMAIL
+      - METABASE_PASSWORD
 volumes:
   postgres-data:
   metabase-data:
