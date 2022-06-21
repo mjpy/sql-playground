@@ -1,48 +1,14 @@
-from curses import meta
 import requests
 
-from os import environ
 from time import sleep
+from pathlib import Path
+
+from metabase import Metabase
+from card import Card
 
 
-class Metabase:
-    host: str = environ.get("METABASE_HOST")
-    port: int = environ.get("METABASE_PORT")
-    email: str = environ.get("METABASE_EMAIL")
-    password: str = environ.get("METABASE_PASSWORD")
-    lang: str = 'en'
-
-    @classmethod
-    @property
-    def base_url(cls) -> str:
-        return f'http://{cls.host}:{cls.port}/api'
-
-    @classmethod
-    @property
-    def user(cls) -> dict:
-        user = cls.email.split('@')[0]
-        return {
-            'first_name': user,
-            'last_name': user,
-            'email': cls.email,
-            'password': cls.password,
-            'password_confirm': cls.password,
-            'site_name': cls.host
-        }
-
-    @classmethod
-    @property
-    def prefs(cls) -> dict:
-        return {
-            'allow_tracking': False,
-            'site_name': cls.host,
-            'site_locale': cls.lang
-        }
-
-    @classmethod
-    @property
-    def database(cls) -> dict:
-        return {
+CARDS_FOLDER = 'cards'
+DB_DVDRENTAL = {
             'engine': 'postgres',
             'name': 'dvdrental',
             'details': {
@@ -58,13 +24,13 @@ class Metabase:
 def get_setup_token(metabase=Metabase) -> str:
     retries = 5
     wait_time = 10
-    timemout = 10
+    timeout = 10
 
     url = f'{metabase.base_url}/session/properties'
     while retries > 0:
 
         try:
-            response = requests.get(url, timeout=timemout)
+            response = requests.get(url, timeout=timeout)
             return response.json()['setup-token']
 
         except (requests.exceptions.ConnectionError,
@@ -75,11 +41,11 @@ def get_setup_token(metabase=Metabase) -> str:
     raise Exception('setup went wrong')
 
 
-def setup(token:str, metabase=Metabase) -> str:
+def setup(token:str, metabase=Metabase, database=DB_DVDRENTAL) -> str:
     response = requests.post(
         f'{metabase.base_url}/setup',
         json={
-            'database': metabase.database,
+            'database': database,
             'invite': None,
             'token': token,
             'user': metabase.user,
@@ -89,8 +55,28 @@ def setup(token:str, metabase=Metabase) -> str:
     return response.json()['id']
 
 
+def create_card(token:str, card:Card, metabase=Metabase) -> str:
+    return requests.post(
+        f'{metabase.base_url}/card',
+        headers={"X-Metabase-Session": token},
+        json=card.payload
+    )
+
+
+def create_cards(token:str, metabase=Metabase, cards_folder=CARDS_FOLDER) -> None:
+    dir = Path(cards_folder)
+    for filepath in dir.glob('**/*.sql'):
+        card = Card.from_file(filepath)
+        create_card(token, card)
+    return None
+
+
+def main():
+    setup_token = get_setup_token()
+    token = setup(setup_token)
+    create_cards(token)
+
+
 if __name__ == '__main__':
-    
-    token = get_setup_token()
-    setup(token)
+    main()
 
