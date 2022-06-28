@@ -20,6 +20,16 @@ You need [docker compose](https://docs.docker.com/compose/).
 [Docker compose](https://docs.docker.com/compose/)
 
 
+### Important
+
+On Mac M1 - this ain't working, problems with metabase images on M1, sometimes it can work, usually it won't.
+
+On Windows - run this before running the stack (TODO: add a script for this):
+```
+    sed -i -e 's/\r$//' postgres/entrypoint/03-load-dvdrental-db.sh
+```
+
+
 ### How to
 
 1. Get docker-compose: https://docs.docker.com/compose/  
